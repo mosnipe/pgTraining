@@ -12,7 +12,7 @@ const rl = readline.createInterface({
 
 rl.question('時速[km/h]: ', (answer) => { 
 
-  const S = answer/60|0;
+  const S = answer*1000/60/60|0;
     console.log('秒速[m/s]:',S); 
 
   rl.close(); 
