@@ -96,6 +96,7 @@ function startTyping() {
         return;
     }
 
+    
     let word;
     do {
         word = wordList[Math.floor(Math.random() * wordList.length)];
