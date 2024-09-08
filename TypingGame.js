@@ -19,21 +19,6 @@ class TypingGame {
             input: process.stdin,
             output: process.stdout
         });
-        this.isInterrupted = false; // 中断フラグを追加
-        this.setupExitKeyListener();
-    }
-
-    setupExitKeyListener() {
-        process.stdin.setRawMode(true);
-        process.stdin.resume();
-        process.stdin.on('data', (key) => {
-            if (key.toString() === '\u001b') { // 'Esc'キーで終了
-                console.log("\nゲーム終了。難易度選択に戻ります。");
-                this.isInterrupted = true; // 中断フラグを立てる
-                this.resetGame();
-                this.startGame();
-            }
-        });
     }
 
     resetGame() {
@@ -44,13 +29,12 @@ class TypingGame {
         this.currentWord = null; // 現在の出題単語
         this.startTime = null;
         this.endTime = null;
-        // currentDifficulty はリセットしないで保持する
+        this.currentDifficulty = null; // 現在の難易度をリセット
     }
 
     startGame() {
         this.rl.question("難易度を選択してください (1: Easy, 2: Normal, 3: Hard): ", (difficulty) => {
-            if (difficulty >= MIN_DIFFICULTY && difficulty <= MAX_DIFFICULTY) {
-                this.isInterrupted = false; // 中断フラグをリセット
+            if (difficulty === '1' || difficulty === '2' || difficulty === '3') {
                 this.setDifficulty(difficulty);
                 console.log("カウントダウン開始…");
                 this.countdown(3);
@@ -82,7 +66,6 @@ class TypingGame {
     }
 
     countdown(seconds) {
-        if (this.isInterrupted) return; // 中断された場合は終了
         if (seconds > 0) {
             console.log(seconds + "...");
             setTimeout(() => this.countdown(seconds - 1), 1000);
@@ -94,8 +77,6 @@ class TypingGame {
     }
 
     startTyping() {
-        if (this.isInterrupted) return; // 中断された場合は終了
-
         if (this.correctCount + this.incorrectCount === this.questionCount) {
             this.endGame();
             return;
@@ -112,30 +93,48 @@ class TypingGame {
             this.currentWord = word; // 現在の単語を記憶
         }
 
-        this.rl.question(`入力してください: ${this.currentWord}\n`, (answer) => {
-            if (this.isInterrupted) return; // 中断された場合は終了
-
-            if (answer === this.currentWord) {
-                console.log("OK!");
-                this.correctCount++;
-                this.currentWord = null; // 正解したので次回は新しい単語を出題
-            } else {
-                console.log("Miss... 再度入力してください。");
-                this.incorrectCount++;
-                // currentWordはリセットしないので、同じ単語を再出題
+        this.rl.question(`入力してください: ${this.currentWord} (or type ':quit' to exit)\n`, (answer) => {
+            if (answer.trim() === ':quit') {
+                console.log("\nゲームを中断しました。難易度選択に戻ります。\n");
+                this.resetGame();
+                this.startGame();
+                return;
             }
-            this.startTyping();
+            this.handleInput(answer);
         });
     }
 
+    handleInput(input) {
+        const answer = input.trim();
+
+        if (answer === this.currentWord) {
+            console.log("OK!");
+            this.correctCount++;
+            this.currentWord = null; // 正解したので次回は新しい単語を出題
+        } else {
+            console.log("Miss... 再度入力してください。");
+            this.incorrectCount++;
+            // currentWordはリセットしないので、同じ単語を再出題
+        }
+
+        if (this.correctCount + this.incorrectCount < this.questionCount) {
+            this.startTyping(); // 次の問題に移るか、再出題する
+        } else {
+            this.endGame();
+        }
+    }
+
     endGame() {
-        if (this.isInterrupted) return; // 中断された場合は終了
         this.endTime = performance.now();
         let timeTaken = ((this.endTime - this.startTime) / 1000).toFixed(2);  // 経過時間を秒で計算
         console.log(`結果: 正解 ${this.correctCount}, 間違い ${this.incorrectCount}`);
         console.log(`経過時間: ${timeTaken} 秒`);
 
-        this.updateRanking(timeTaken);
+        if (this.currentDifficulty) {
+            this.updateRanking(timeTaken); // currentDifficultyが設定されているか確認
+        } else {
+            console.log("エラー: 難易度が設定されていません。");
+        }
         this.displayRanking();
         this.askRetry();
     }
@@ -153,8 +152,10 @@ class TypingGame {
     }
 
     displayRanking() {
-        console.log(`${this.currentDifficulty.charAt(0).toUpperCase() + this.currentDifficulty.slice(1)}ランキング:`);
-        this.rankings[this.currentDifficulty].forEach((time, index) => console.log(`${index + 1}: ${time}[s]`));
+        if (this.currentDifficulty) {
+            console.log(`${this.currentDifficulty.charAt(0).toUpperCase() + this.currentDifficulty.slice(1)}ランキング:`);
+            this.rankings[this.currentDifficulty].forEach((time, index) => console.log(`${index + 1}: ${time}[s]`));
+        }
     }
 
     askRetry() {
