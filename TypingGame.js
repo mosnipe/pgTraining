@@ -19,6 +19,7 @@ class TypingGame {
             input: process.stdin,
             output: process.stdout
         });
+        this.isInterrupted = false; // 中断フラグを追加
         this.setupExitKeyListener();
     }
 
@@ -28,6 +29,7 @@ class TypingGame {
         process.stdin.on('data', (key) => {
             if (key.toString() === '\u001b') { // 'Esc'キーで終了
                 console.log("\nゲーム終了。難易度選択に戻ります。");
+                this.isInterrupted = true; // 中断フラグを立てる
                 this.resetGame();
                 this.startGame();
             }
@@ -42,12 +44,13 @@ class TypingGame {
         this.currentWord = null; // 現在の出題単語
         this.startTime = null;
         this.endTime = null;
-        this.currentDifficulty = null;
+        // currentDifficulty はリセットしないで保持する
     }
 
     startGame() {
         this.rl.question("難易度を選択してください (1: Easy, 2: Normal, 3: Hard): ", (difficulty) => {
             if (difficulty >= MIN_DIFFICULTY && difficulty <= MAX_DIFFICULTY) {
+                this.isInterrupted = false; // 中断フラグをリセット
                 this.setDifficulty(difficulty);
                 console.log("カウントダウン開始…");
                 this.countdown(3);
@@ -79,6 +82,7 @@ class TypingGame {
     }
 
     countdown(seconds) {
+        if (this.isInterrupted) return; // 中断された場合は終了
         if (seconds > 0) {
             console.log(seconds + "...");
             setTimeout(() => this.countdown(seconds - 1), 1000);
@@ -90,6 +94,8 @@ class TypingGame {
     }
 
     startTyping() {
+        if (this.isInterrupted) return; // 中断された場合は終了
+
         if (this.correctCount + this.incorrectCount === this.questionCount) {
             this.endGame();
             return;
@@ -107,6 +113,8 @@ class TypingGame {
         }
 
         this.rl.question(`入力してください: ${this.currentWord}\n`, (answer) => {
+            if (this.isInterrupted) return; // 中断された場合は終了
+
             if (answer === this.currentWord) {
                 console.log("OK!");
                 this.correctCount++;
@@ -121,6 +129,7 @@ class TypingGame {
     }
 
     endGame() {
+        if (this.isInterrupted) return; // 中断された場合は終了
         this.endTime = performance.now();
         let timeTaken = ((this.endTime - this.startTime) / 1000).toFixed(2);  // 経過時間を秒で計算
         console.log(`結果: 正解 ${this.correctCount}, 間違い ${this.incorrectCount}`);
