@@ -39,6 +39,7 @@ class TypingGame {
         this.incorrectCount = 0;
         this.questionCount = 0;
         this.previousWord = null;
+        this.currentWord = null; // 現在の出題単語
         this.startTime = null;
         this.endTime = null;
         this.currentDifficulty = null;
@@ -94,20 +95,26 @@ class TypingGame {
             return;
         }
 
-        let word;
-        do {
-            word = this.wordList[Math.floor(Math.random() * this.wordList.length)];
-        } while (word === this.previousWord); // 前回の単語と同じなら再抽選
+        if (!this.currentWord) {
+            // 初回もしくは正解後に新しい単語を出題
+            let word;
+            do {
+                word = this.wordList[Math.floor(Math.random() * this.wordList.length)];
+            } while (word === this.previousWord); // 前回の単語と同じなら再抽選
 
-        this.previousWord = word;
-        this.rl.question(`入力してください: ${word}\n`, (answer) => {
-            if (answer === word) {
+            this.previousWord = word;
+            this.currentWord = word; // 現在の単語を記憶
+        }
+
+        this.rl.question(`入力してください: ${this.currentWord}\n`, (answer) => {
+            if (answer === this.currentWord) {
                 console.log("OK!");
                 this.correctCount++;
+                this.currentWord = null; // 正解したので次回は新しい単語を出題
             } else {
                 console.log("Miss... 再度入力してください。");
                 this.incorrectCount++;
-                return this.startTyping(); // 再度同じ単語を要求
+                // currentWordはリセットしないので、同じ単語を再出題
             }
             this.startTyping();
         });
