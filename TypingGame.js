@@ -126,9 +126,9 @@ class TypingGame {
 
     endGame() {
         this.endTime = performance.now();
-        let timeTaken = ((this.endTime - this.startTime) / 1000).toFixed(2);  // 経過時間を秒で計算
+        let timeTaken = (this.endTime - this.startTime).toFixed(2);  // 経過時間をミリ秒で計算
         console.log(`結果: 正解 ${this.correctCount}, 間違い ${this.incorrectCount}`);
-        console.log(`経過時間: ${timeTaken} 秒`);
+        console.log(`経過時間: ${timeTaken} ms`);
 
         if (this.currentDifficulty) {
             this.updateRanking(timeTaken); // currentDifficultyが設定されているか確認
@@ -154,7 +154,7 @@ class TypingGame {
     displayRanking() {
         if (this.currentDifficulty) {
             console.log(`${this.currentDifficulty.charAt(0).toUpperCase() + this.currentDifficulty.slice(1)}ランキング:`);
-            this.rankings[this.currentDifficulty].forEach((time, index) => console.log(`${index + 1}: ${time}[s]`));
+            this.rankings[this.currentDifficulty].forEach((time, index) => console.log(`${index + 1}: ${time}[ms]`));
         }
     }
 
