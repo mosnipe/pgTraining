@@ -1,4 +1,4 @@
-﻿const readlineSync = require('readline-sync');
+const readlineSync = require('readline-sync');
 const fs = require('fs');
 const csv = require('csv-parser');
 
