@@ -1,0 +1,17 @@
+{
+  "name": "room-reservation-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "inquirer": "^12.1.0",
+    "readline-sync": "^1.4.10"
+  }
+}
