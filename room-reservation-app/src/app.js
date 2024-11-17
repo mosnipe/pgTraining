@@ -75,38 +75,69 @@ function userMenu() {
  * 予約照会機能
  */
 async function showReservations() {
-  console.log('＝＝＝施設予約システム－予約照会画面＝＝＝');
-  console.log(`ユーザ名：${currentUser.user_id}`);
-  console.log('施設番号と日付を入力してください。');
-  console.log('予約者用メニュー画面へ戻る場合は、-1を入力してください。');
-
-  const facilities = await loadCsv(EQUIPMENT_CSV_PATH);
-  facilities.forEach(f => console.log(`[${f.room_id}]${f.name} 定員：${f.capacity} 内線番号：${f.tel}`));
-
-  let facilityId;
-  while (true) {
-    facilityId = readlineSync.question('施設番号：');
-    if (facilityId === '-1') return userMenu();
-    if (!/^\d+$/.test(facilityId) || !facilities.find(f => f.room_id === facilityId)) {
-      console.log('無効な施設番号です。再入力してください。');
-    } else {
-      break;
+    console.log('＝＝＝施設予約システム－予約照会画面＝＝＝');
+    console.log(`ユーザ名：${currentUser.user_id}`);
+    console.log('施設番号と日付を入力してください。');
+    console.log('予約者用メニュー画面へ戻る場合は、-1を入力してください。');
+  
+    // `equipment.csv` から施設情報を取得
+    const facilities = await loadCsv(EQUIPMENT_CSV_PATH);
+    facilities.forEach(f => console.log(`[${f.room_id}]${f.name} 定員：${f.capacity} 内線番号：${f.tel}`));
+  
+    // 施設番号の入力
+    let facilityId;
+    while (true) {
+      facilityId = readlineSync.question('施設番号：');
+      if (facilityId === '-1') return userMenu();
+      if (!/^\d+$/.test(facilityId) || !facilities.find(f => f.room_id === facilityId)) {
+        console.log('無効な施設番号です。再入力してください。');
+      } else {
+        break;
+      }
     }
-  }
-
-  let date;
-  while (true) {
-    date = readlineSync.question('日付 (YYYY-MM-DD)：');
-    if (date === '-1') return userMenu();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      console.log('無効な日付形式です。再入力してください。');
-    } else {
-      break;
+  
+    // 日付の入力
+    let date;
+    while (true) {
+      date = readlineSync.question('日付 (YYYY-MM-DD)：');
+      if (date === '-1') return userMenu();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        console.log('無効な日付形式です。再入力してください。');
+      } else {
+        break;
+      }
     }
+  
+    // `reservation.csv` から予約情報を取得
+    const reservations = await loadCsv('./src/data/reservation.csv');
+  
+    // 入力された施設IDと日付に一致する予約を検索
+    const matchingReservations = reservations.filter(reservation => {
+      return (
+        reservation.room_id === facilityId &&
+        reservation.start.startsWith(date)
+      );
+    });
+  
+    // 一致する予約があれば表示、なければメッセージを表示
+    if (matchingReservations.length > 0) {
+      console.log(`\n＝＝＝ ${facilities.find(f => f.room_id === facilityId).name}の予約一覧 (${date}) ＝＝＝`);
+      matchingReservations.forEach(res => {
+        console.log(`予約ID: ${res.id}`);
+        console.log(`利用開始: ${res.start}`);
+        console.log(`利用終了: ${res.end}`);
+        console.log(`予約者: ${res.user_id}`);
+        console.log(`目的: ${res.purpose || 'なし'}`);
+        console.log('--------------------------------');
+      });
+    } else {
+      console.log(`\n指定した施設ID「${facilityId}」の${date}の予約はありません。`);
+    }
+  
+    // 照会完了後、メニューに戻る
+    userMenu();
   }
-
-  console.log(`施設番号：${facilityId}、日付：${date} の予約を検索中...`);
-}
+  
 
 /**
  * 施設予約機能
