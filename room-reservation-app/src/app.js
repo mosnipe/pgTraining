@@ -3,70 +3,48 @@ const fs = require('fs');
 const csv = require('csv-parser');
 
 const USERS_CSV_PATH = './src/data/userAccount.csv';
-const FACILITIES = [
-  { id: 1, name: '大会議室', capacity: 40, tel: 2110 },
-  { id: 2, name: '第1会議室', capacity: 10, tel: 2111 },
-  { id: 3, name: 'ミーティングスペースA', capacity: 4, tel: 4210 },
-  { id: 4, name: 'ミーティングスペースB', capacity: 6, tel: 4211 }
-];
-
+const EQUIPMENT_CSV_PATH = './src/data/equipment.csv';
 let currentUser = null;
 
 // 文字化け対策
 process.stdout.write('\u001b[0m');
 
 /**
- * ユーザーの入力を促し、ログイン処理を行う
+ * CSVファイルからデータを読み込む
+ * @param {string} filePath - 読み込むCSVファイルのパス
+ * @returns {Promise<Array>}
  */
-function promptUserLogin() {
-  console.log('＝＝＝施設予約システム－認証画面＝＝＝\n');
-  console.log('ログイン名とパスワードを入力してください。');
-  console.log('終了する場合は、ログイン名に-1を入力してください。\n');
-
-  const userId = readlineSync.question('ログイン名：'.toString('utf8'));
-  if (userId === '-1') {
-    console.log('アプリを終了します。');
-    process.exit(0);
-  }
-  
-  const password = readlineSync.question('パスワード：'.toString('utf8'), { hideEchoBack: true });
-  return { userId, password };
-}
-
-/**
- * CSVからユーザーアカウントを読み込む
- */
-async function loadUserAccounts() {
-  const users = [];
+async function loadCsv(filePath) {
+  const data = [];
   return new Promise((resolve, reject) => {
-    fs.createReadStream(USERS_CSV_PATH)
+    fs.createReadStream(filePath)
       .pipe(csv())
-      .on('data', (row) => users.push(row))
-      .on('end', () => resolve(users))
+      .on('data', (row) => data.push(row))
+      .on('end', () => resolve(data))
       .on('error', (err) => reject(err));
   });
 }
 
 /**
- * ユーザーが正しくログインできるかを確認する
+ * ユーザーのログイン処理
  */
 async function loginUser() {
-  const { userId, password } = promptUserLogin();
-  const users = await loadUserAccounts();
+  const users = await loadCsv(USERS_CSV_PATH);
+  while (true) {
+    console.log('＝＝＝施設予約システム－認証画面＝＝＝');
+    const userId = readlineSync.question('ログイン名：');
+    if (userId === '-1') process.exit(0);
+    const password = readlineSync.question('パスワード：', { hideEchoBack: true });
 
-  const user = users.find((user) => user.user_id === userId && user.password === password);
-
-  if (user) {
-    currentUser = user;
-    console.log(`ログイン成功: ようこそ ${user.user_id} さん\n`);
-    if (user.role === 'admin') {
-      adminMenu();
+    const user = users.find(u => u.user_id === userId && u.password === password);
+    if (user) {
+      currentUser = user;
+      console.log(`ログイン成功: ようこそ ${user.user_id} さん\n`);
+      user.role === 'admin' ? adminMenu() : userMenu();
+      break;
     } else {
-      userMenu();
+      console.log('ログイン失敗: ユーザーIDまたはパスワードが間違っています\n');
     }
-  } else {
-    console.log('ログイン失敗: ユーザーIDまたはパスワードが間違っています\n');
-    await loginUser();
   }
 }
 
@@ -75,12 +53,9 @@ async function loginUser() {
  */
 function userMenu() {
   console.log('＝＝＝施設予約システム－予約者サービスメニュー画面＝＝＝');
-  console.log(`ユーザ名：${currentUser.user_id}\n`);
-  console.log('メニュー番号を入力してください。\n');
   console.log('[1]予約照会\n[2]施設予約\n[3]終了');
-  
-  const choice = readlineSync.question('選択番号：'.toString('utf8'));
-  
+  const choice = readlineSync.question('選択番号：');
+
   switch (choice) {
     case '1':
       showReservations();
@@ -89,7 +64,6 @@ function userMenu() {
       reserveFacility();
       break;
     case '3':
-      console.log('アプリを終了します。');
       process.exit(0);
     default:
       console.log('無効な選択です。');
@@ -98,44 +72,91 @@ function userMenu() {
 }
 
 /**
- * 予約照会画面
+ * 予約照会機能
  */
-function showReservations() {
+async function showReservations() {
   console.log('＝＝＝施設予約システム－予約照会画面＝＝＝');
-  console.log(`ユーザ名：${currentUser.user_id}\n`);
-  console.log('施設番号と日付を入力してください。\n予約者用メニュー画面へ戻る場合は、-1を入力してください。\n');
-  FACILITIES.forEach(f => console.log(`[${f.id}]${f.name} 定員：${f.capacity} 内線番号：${f.tel}`));
-  const facilityId = readlineSync.question('施設番号：'.toString('utf8'));
-  
-  if (facilityId === '-1') {
-    userMenu();
+  console.log(`ユーザ名：${currentUser.user_id}`);
+  console.log('施設番号と日付を入力してください。');
+  console.log('予約者用メニュー画面へ戻る場合は、-1を入力してください。');
+
+  const facilities = await loadCsv(EQUIPMENT_CSV_PATH);
+  facilities.forEach(f => console.log(`[${f.room_id}]${f.name} 定員：${f.capacity} 内線番号：${f.tel}`));
+
+  let facilityId;
+  while (true) {
+    facilityId = readlineSync.question('施設番号：');
+    if (facilityId === '-1') return userMenu();
+    if (!/^\d+$/.test(facilityId) || !facilities.find(f => f.room_id === facilityId)) {
+      console.log('無効な施設番号です。再入力してください。');
+    } else {
+      break;
+    }
   }
+
+  let date;
+  while (true) {
+    date = readlineSync.question('日付 (YYYY-MM-DD)：');
+    if (date === '-1') return userMenu();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      console.log('無効な日付形式です。再入力してください。');
+    } else {
+      break;
+    }
+  }
+
+  console.log(`施設番号：${facilityId}、日付：${date} の予約を検索中...`);
 }
 
 /**
- * 施設予約画面
+ * 施設予約機能
  */
-function reserveFacility() {
+async function reserveFacility() {
+  const facilities = await loadCsv(EQUIPMENT_CSV_PATH);
   console.log('＝＝＝施設予約システム－施設予約画面＝＝＝');
-  console.log(`ユーザ名：${currentUser.user_id}\n`);
-  console.log('施設番号、利用開始日時、利用終了日時、利用目的(空白可)を入力してください。\n予約者用メニュー画面へ戻る場合は、-1を入力してください。\n');
-  FACILITIES.forEach(f => console.log(`[${f.id}]${f.name} 定員：${f.capacity} 内線番号：${f.tel}`));
-  const facilityId = readlineSync.question('施設番号：'.toString('utf8'));
-  
-  if (facilityId === '-1') {
-    userMenu();
+  facilities.forEach(f => console.log(`[${f.room_id}]${f.name} 定員：${f.capacity} 内線番号：${f.tel}`));
+
+  let facilityId;
+  while (true) {
+    facilityId = readlineSync.question('施設番号：');
+    if (!/^\d+$/.test(facilityId) || !facilities.find(f => f.room_id === facilityId)) {
+      console.log('無効な施設番号です。再入力してください。');
+    } else {
+      break;
+    }
   }
+
+  let startTime;
+  while (true) {
+    startTime = readlineSync.question('利用開始日時 (YYYY-MM-DD HH:mm)：');
+    if (!isValidDateTime(startTime)) {
+      console.log('無効な日時形式です。再入力してください。');
+    } else {
+      break;
+    }
+  }
+
+  let endTime;
+  while (true) {
+    endTime = readlineSync.question('利用終了日時 (YYYY-MM-DD HH:mm)：');
+    if (!isValidDateTime(endTime) || new Date(endTime) <= new Date(startTime)) {
+      console.log('無効な終了日時です。再入力してください。');
+    } else {
+      break;
+    }
+  }
+
+  const purpose = readlineSync.question('利用目的 (任意)：');
+  console.log('予約が完了しました。');
 }
 
 /**
  * 管理者用メニュー
  */
 function adminMenu() {
-  console.log('＝＝＝施設予約システム－管理者サービスメニュー画面＝＝＝\n');
-  console.log('メニュー番号を入力してください。\n');
+  console.log('＝＝＝施設予約システム－管理者サービスメニュー画面＝＝＝');
   console.log('[1]施設登録\n[2]ユーザ登録\n[3]終了');
-
-  const choice = readlineSync.question('選択番号：'.toString('utf8'));
+  const choice = readlineSync.question('選択番号：');
 
   switch (choice) {
     case '1':
@@ -145,7 +166,6 @@ function adminMenu() {
       registerUser();
       break;
     case '3':
-      console.log('アプリを終了します。');
       process.exit(0);
     default:
       console.log('無効な選択です。');
@@ -154,19 +174,10 @@ function adminMenu() {
 }
 
 /**
- * 施設登録画面
+ * 日時のバリデーション
  */
-function registerFacility() {
-  console.log('＝＝＝施設予約システム－施設登録画面＝＝＝\n');
-  console.log('施設名、定員、内線番号を入力してください。管理者用メニュー画面へ戻る場合は、-1 を入力してください。\n');
-}
-
-/**
- * ユーザ登録画面
- */
-function registerUser() {
-  console.log('＝＝＝施設予約システム－ユーザ登録画面＝＝＝\n');
-  console.log('ログイン名、パスワード、ユーザの実名、内線番号、部署名、権限を入力してください。管理者用メニュー画面へ戻る場合は、-1 を入力してください。\n');
+function isValidDateTime(dateTime) {
+  return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(dateTime);
 }
 
 // アプリの起動
