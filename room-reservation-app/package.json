@@ -12,6 +12,7 @@
   "dependencies": {
     "csv-parser": "^3.0.0",
     "inquirer": "^12.1.0",
-    "readline-sync": "^1.4.10"
+    "readline-sync": "^1.4.10",
+    "sqlite3": "^5.1.7"
   }
 }
