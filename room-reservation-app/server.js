@@ -126,3 +126,44 @@ app.post('/api/reservations', (req, res) => {
         });
     });
 });
+
+// 予約確認API
+app.get('/api/reservations/search', (req, res) => {
+    const { facility_id, user_id, date } = req.query;
+    console.log('GETリクエスト: /api/reservations/search');
+    console.log('リクエストパラメータ:', { facility_id, user_id, date });
+
+    let query = `SELECT * FROM reservations WHERE 1=1`;
+    const params = [];
+
+    if (facility_id) {
+        query += ` AND facility_id = ?`;
+        params.push(facility_id);
+    }
+
+    if (user_id) {
+        query += ` AND user_id = ?`;
+        params.push(user_id);
+    }
+
+    if (date) {
+        query += ` AND date(start_time) = ?`;
+        params.push(date);
+    }
+
+    db.all(query, params, (err, rows) => {
+        if (err) {
+            console.error('予約確認エラー:', err.message);
+            return res.status(500).json({
+                success: false,
+                message: '予約確認中にエラーが発生しました'
+            });
+        }
+
+        res.json({
+            success: true,
+            reservations: rows
+        });
+    });
+});
+
