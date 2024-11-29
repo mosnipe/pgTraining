@@ -11,6 +11,7 @@ app.use(bodyParser.json());
 
 // サーバー動作確認
 app.get('/', (req, res) => {
+    console.log('GETリクエスト: /');
     res.send('施設予約システム API');
 });
 
@@ -21,8 +22,11 @@ app.listen(PORT, () => {
 // ログインAPI
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
+    console.log('POSTリクエスト: /api/login');
+    console.log('リクエストボディ:', req.body);
 
     if (!username || !password) {
+        console.log('ログイン失敗: 入力データが不完全');
         return res.status(400).json({
             success: false,
             message: 'ユーザーIDとパスワードを入力してください'
@@ -32,6 +36,7 @@ app.post('/api/login', (req, res) => {
     const query = 'SELECT * FROM users WHERE username = ? AND password = ?';
     db.get(query, [username, password], (err, row) => {
         if (err) {
+            console.error('ログインエラー:', err.message);
             return res.status(500).json({
                 success: false,
                 message: 'サーバーエラーが発生しました'
@@ -39,12 +44,14 @@ app.post('/api/login', (req, res) => {
         }
 
         if (row) {
+            console.log('ログイン成功:', row);
             return res.json({
                 success: true,
                 message: 'ログイン成功',
                 role: row.role
             });
         } else {
+            console.log('ログイン失敗: ユーザーIDまたはパスワードが間違っています');
             return res.status(401).json({
                 success: false,
                 message: 'ログイン失敗: ユーザーIDまたはパスワードが間違っています'
@@ -52,12 +59,16 @@ app.post('/api/login', (req, res) => {
         }
     });
 });
+
 // 会議室予約API
 app.post('/api/reservations', (req, res) => {
     const { facility_id, user_id, start_time, end_time, purpose } = req.body;
+    console.log('POSTリクエスト: /api/reservations');
+    console.log('リクエストボディ:', req.body);
 
     // 入力チェック
     if (!facility_id || !user_id || !start_time || !end_time) {
+        console.log('予約失敗: 必須項目が不足');
         return res.status(400).json({
             success: false,
             message: '予約データが不正です。必須項目をすべて入力してください。'
@@ -73,8 +84,10 @@ app.post('/api/reservations', (req, res) => {
             (start_time < ? AND end_time >= ?)
         )
     `;
+    console.log('予約の衝突チェック開始:', { facility_id, start_time, end_time });
     db.get(checkQuery, [facility_id, end_time, start_time, start_time, end_time], (err, row) => {
         if (err) {
+            console.error('予約衝突チェックエラー:', err.message);
             return res.status(500).json({
                 success: false,
                 message: 'サーバーエラーが発生しました'
@@ -82,6 +95,7 @@ app.post('/api/reservations', (req, res) => {
         }
 
         if (row) {
+            console.log('予約失敗: 時間帯の重複', row);
             return res.status(409).json({
                 success: false,
                 message: '指定された時間帯には既に予約が入っています'
@@ -93,14 +107,17 @@ app.post('/api/reservations', (req, res) => {
             INSERT INTO reservations (facility_id, user_id, start_time, end_time, purpose)
             VALUES (?, ?, ?, ?, ?)
         `;
+        console.log('予約データ挿入開始:', { facility_id, user_id, start_time, end_time, purpose });
         db.run(insertQuery, [facility_id, user_id, start_time, end_time, purpose], function (err) {
             if (err) {
+                console.error('予約挿入エラー:', err.message);
                 return res.status(500).json({
                     success: false,
                     message: '予約の登録中にエラーが発生しました'
                 });
             }
 
+            console.log('予約成功: ID=', this.lastID);
             res.json({
                 success: true,
                 message: '予約が完了しました',
