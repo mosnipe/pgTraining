@@ -166,4 +166,70 @@ app.get('/api/reservations/search', (req, res) => {
         });
     });
 });
+// 会議室登録API
+app.post('/api/facilities', (req, res) => {
+    const { name, capacity, tel } = req.body;
+    console.log('POSTリクエスト: /api/facilities');
+    console.log('リクエストボディ:', req.body);
+
+    if (!name || !capacity) {
+        return res.status(400).json({
+            success: false,
+            message: '会議室名と収容人数は必須です'
+        });
+    }
+
+    const query = `
+        INSERT INTO facilities (name, capacity, tel)
+        VALUES (?, ?, ?)
+    `;
+    db.run(query, [name, capacity, tel], function (err) {
+        if (err) {
+            console.error('会議室登録エラー:', err.message);
+            return res.status(500).json({
+                success: false,
+                message: '会議室登録中にエラーが発生しました'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: '会議室が登録されました',
+            facility_id: this.lastID
+        });
+    });
+});
+// ユーザー登録API
+app.post('/api/users', (req, res) => {
+    const { username, password, role } = req.body;
+    console.log('POSTリクエスト: /api/users');
+    console.log('リクエストボディ:', req.body);
+
+    if (!username || !password || !role) {
+        return res.status(400).json({
+            success: false,
+            message: 'ユーザー名、パスワード、役割は必須です'
+        });
+    }
+
+    const query = `
+        INSERT INTO users (username, password, role)
+        VALUES (?, ?, ?)
+    `;
+    db.run(query, [username, password, role], function (err) {
+        if (err) {
+            console.error('ユーザー登録エラー:', err.message);
+            return res.status(500).json({
+                success: false,
+                message: 'ユーザー登録中にエラーが発生しました'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'ユーザーが登録されました',
+            user_id: this.lastID
+        });
+    });
+});
 
