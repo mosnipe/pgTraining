@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>施設予約システム - 予約</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header>
+    <h1>施設予約システム</h1>
+  </header>
+  <main>
+    <section class="reservation-form">
+      <h2>会議室の予約</h2>
+      <form id="reservationForm">
+        <label for="facility">施設</label>
+        <select id="facility" name="facility" required>
+          <option value="">選択してください</option>
+          <option value="101">会議室A</option>
+          <option value="102">会議室B</option>
+        </select>
+
+        <label for="start_time">利用開始時刻</label>
+        <input type="datetime-local" id="start_time" name="start_time" required>
+
+        <label for="end_time">利用終了時刻</label>
+        <input type="datetime-local" id="end_time" name="end_time" required>
+
+        <label for="purpose">利用目的（任意）</label>
+        <input type="text" id="purpose" name="purpose" placeholder="例: プロジェクト会議">
+
+        <button type="submit">予約する</button>
+      </form>
+      <p id="reservationMessage" class="success-message"></p>
+      <p id="reservationError" class="error-message"></p>
+    </section>
+  </main>
+  <script src="assets/scripts.js"></script>
+</body>
+</html>

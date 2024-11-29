@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>施設予約システム - 管理者</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header>
+    <h1>施設予約システム - 管理者メニュー</h1>
+  </header>
+  <main>
+    <section class="admin-menu">
+      <h2>メニュー</h2>
+      <button id="addUserBtn">ユーザー登録</button>
+      <button id="addFacilityBtn">施設登録</button>
+    </section>
+    <section id="formSection" class="form-section" style="display: none;">
+      <h2 id="formTitle"></h2>
+      <form id="adminForm">
+        <!-- フォーム内容は動的に生成 -->
+      </form>
+      <p id="formMessage" class="success-message"></p>
+      <p id="formError" class="error-message"></p>
+    </section>
+  </main>
+  <script src="assets/scripts.js"></script>
+</body>
+</html>
